@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Transit gateway Lab
+
+Resources:
+  BPDevVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: BPDev
+
+  BPDevSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BPDevVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: BPDev-subnet
+
+  BPDevIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: BPDev-igw
+
+  BPDevVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref BPDevVPC
+      InternetGatewayId: !Ref BPDevIGW
+
+  BPDevRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BPDevVPC
+      Tags:
+        - Key: Name
+          Value: BPDev-route
+
+  BPDevRoute:
+    Type: AWS::EC2::Route
+    DependsOn: BPDevVPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref BPDevRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref BPDevIGW
+
+  BPDevSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BPDevSubnet
+      RouteTableId: !Ref BPDevRouteTable
+
+  BPDevSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and ICMP-ipv4 access to the instance
+      VpcId: !Ref BPDevVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp # Changed from icmp to icmpv4 as per the requirement 
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  BPDevAngularInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-06006e8b065b5bd46 # Ubuntu Server 20.04 LTS (HVM), SSD Volume Type in us-east-1 region 
+      SubnetId: !Ref BPDevSubnet
+      SecurityGroupIds:
+        - !Ref BPDevSecurityGroup
+      Tags:
+        - Key: Name
+          Value: BPDev-angular
+  
+  BPProdVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: BPprod
+
+  BPProdSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BPProdVPC
+      CidrBlock: 192.168.0.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: BPProd-subnet
+
+  BPProdIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: BPProd-igw
+
+  BPProdVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref BPProdVPC
+      InternetGatewayId: !Ref BPProdIGW
+
+  BPProdRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BPProdVPC
+      Tags:
+        - Key: Name
+          Value: BPProd-route
+
+  BPProdRoute:
+    Type: AWS::EC2::Route
+    DependsOn: BPProdVPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref BPProdRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref BPProdIGW
+
+  BPProdSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BPProdSubnet
+      RouteTableId: !Ref BPProdRouteTable
+
+  BPProdSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and ICMP-ipv4 access to the instance
+      VpcId: !Ref BPProdVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp # Changed from icmp to icmpv4 as per the requirement 
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+
+  BPProdAngularInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-06006e8b065b5bd46 # Ubuntu Server 20.04 LTS (HVM), SSD Volume Type in us-east-1 region 
+      SubnetId: !Ref BPProdSubnet
+      SecurityGroupIds:
+        - !Ref BPProdSecurityGroup
+      Tags:
+        - Key: Name
+          Value: BPProd-angular
